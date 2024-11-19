@@ -1,0 +1,6 @@
+This is an example of RGO results.
+A structure called Initial.xyz was used as an input with cutoffs 0.9 0.9.
+The potential is a neural network Behler Parrinello called using LAMMPS interface of OPTIM.
+Second derivatives are done numerically since analytical ones have not been implemented yet.
+
+This is the state after two iterations of the code. More than 100 structures have been found.
