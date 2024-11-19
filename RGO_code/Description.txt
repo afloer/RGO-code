@@ -1,0 +1,74 @@
+************************* Description of the code ***************************
+
+The idea of this code is to perform an eigenvector (EV) following analysis starting from a chosen structure. It evaluates all the '3+nat - 6' modes, follows them in both directions and then from the TS it relaxes in both directions, finding a total of 4 times '3+nat - 6' new structures. Ideally, after relaxing from the TS, one of the directions will lead to the original minima and the other to a possibly new minima. If that is not the case, a NEB is performed to recalculate the barrier and at the same time to check if these two minima are indeed 1st neighbors.
+After one structure is analyzed and its 1st neighbors determined, the process is repeated for every NEW structure found. Everything is done considering two energy coutoffs: the barrier separating 1st neighbors, that should be lower than some specified value; the energy difference w.r.t. the initial structure.
+
+For the 1st run one needs to have on one random folder the following files:
+1. 4 Templates, 'Template-odata.min' and 'Template-odata.min2' for minimizations from TS, 'Template-odata.ev' for the EV-follwoing and 'Template-odata.neb' for the NEBs. In this initial stage, please do not change the number of images inside for the NEBs
+2. An initial RELAXED structure in 'xyz' format, with the number of atoms in the 1st line, the energy in the 2nd and the atomic species plus 3 x/y/z  coordinates in the following lines. (Initial.xyz) 
+3. A masses file containing the masses of each atomic species. One mass per line, in the order in which they appear in the initial relaxed structure
+4. The Main_new.bash file.
+5. The Structure_file.txt, containing only the following line 'Y 0 Energy MomentOfInertia1 MomentOfIntertia2 MomentOfInertia3 0' where, instead of ther writing, there are the proper values for energy and moments of inertia (obtained for instance by the preliminary OPTIM minimization to obtain Initial.xyz)
+6. An empty folder Analyzed/
+
+7. If the code is used in conjunction with LAMMPS to obtain forces and energies, then a suitable in.lammps and data.lammps files are required (see the example folder). Note that masses are overwritten by the masses file, since LAMMPS only handles energy/forces calculations, but everything else is done by OPTIM.
+
+Once all these files are in some folder, one can run the code with the following command:
+./Main_new.bash '/path/to/executables' Initial.xyz 0.5 1.0 8 > out &
+where 0.5 stands for the cut in the energy barriers, 1.0 the cut in the energy value w.r.t. the initial geometry and 8 stands for the number of processors to be used. 
+Note that the LMPOPTIM code may yield some errors when the NEB hits the max iterations and convergence is not achieved. However, the result of the calculation is not affected, since non-converged NEB were to be discarded anyway,
+
+'/path/to/executables' is the folder where all required files to run the code should be located, including the LMPOPTIM executable (OPTIM interfaced with lammps for energy/force calculation). Here is a brief description of what each file on this folder does:
+
+
+************************* Description of the files ***************************
+
+*** Main_new.bash     
+Main file to perform a 1st run. It contains a stack that assigns structures to be analyzed to the free processors
+*** freq_new_precisionegiusta.bash               
+Given a local minima and some mode in some direction, it uses OPTIM to follow this desired mode and then it optimizes the TS found in both directions. If one of these directions does not lead to the original minima, redo it again with a smaller pushoff. If again it does not lead to the original minima, it makes a NEB. If a new minima is fond between the 'new' and original structure, it does not accept it.
+*** get_new_struct_new.bash  
+After 'freq_new_precisionegiusta.bash' finished, it generates many possible minima. 'get_new_struct_new.bash' choosed which are accepted based on the energy cutoffs. In addition, it checks if the structure is new or not, writing with the help of aggiungistrutture_newgf.f90/aggiungistrutture.x on Structure_file.txt. A lockfile is used to ensure that only one processor at the time has access to the file.
+
+
+*** functions.bash       
+Contains a simple function to give the generated structures a name in the right format. For example, to the initial structure, that has given the number zero, is given the label '000...000' (32 digits); for 1713 -> '00...1713' (32 digits); and so on. Since each processor runs in parallel the RGO on a different structure, a unique number is assigned to each structure. Not all of the numbers will be present, since not all the directions lead to a reactive path. The numbers grow quite fast, but 32 digits should allow for a few cycles to run smoothly. 
+*** LMPOPTIM / sem
+'LMPOPTIM' executable has to be put here, after one install 'LMPOPTIM'. 'sem' (from Gnu-paralell) should also be included if one wants to run on more than one processor.          
+
+
+*** Template-odata.min   
+Template for TS-minimization. A higher pushoff should be used here.
+*** Template-odata.min2   
+Template for TS-minimization. A smaller pushoff should be used here. It will be used in case the previous pushoff generates 2 minima unconnected to the original minima that originated the TS.
+*** Template-odata.ev    
+Template for EV-following. 
+*** Template-odata.neb
+Template for the NEBs. 15 images should be used. 
+
+*** image-ext.x          
+C++-executable to interpolate the initial-TS-final images we have from the EV-following in order to perform a NEB after. 
+*** image.bash           
+Script that calls image-ext.x 'n' times in order to generate the desire number of images. Every time image-ext.x is called, it generates n-image-1 new images. So, starting with 3, we can have 3-5-9-17-33.... Note that OPTIM input expects the number of intermediate images, so if we interpolate up to the point that we generated 17 images, we should put '15' in 'Template-odata.neb'. 
+
+*** Tools_PP
+Tools for post processing. 'path_single.bash' and 'path_collect.bash' should be copied to the folder where the code was ran (the one where All_Structures is located) and then run it giving the two desired structures to be connceted. Example: 
+./path_collect.bash 000000000 000001730. 
+And then wait. After finishing, the code will put in the folder 'Paths_Found' all the paths in '.xyz' (structures) and '.en' (energies) format. Depending on the number of possible connections, the program will take from 1 minute to 1 day in order to run. If the 'Main.bash' run did not finish completely, some paths will be incorrect.
+To generate the matrix of connections, it is the same, one has to copy the 'generate_matrix' file to the main folder and then run giving as an input the output file.
+./generate_matrix.bash matrix.dat.
+*** Tools
+Folder containing the C++ files.
+
+
+************************* Description of the outputs ***************************
+The code is a bit storage intensive, so care was taken to avoid repeting some information too many times. The main output file is the Structure_file.txt
+For each structure it gives the following information:
+1) the first character describes whether the structure has already been analyzed or not (Y/N)
+2) Then the unique identifier of the structure
+3) Its energy and moments of inertia. Comparison of the structures is done on energy and MoI similarity, since it is much much faster than coordinate comparison (which otherwise becomes the computational bottleneck when very fast potential are used, such as the Second Moment Tight Binding / Gupta) 
+4) The number of identified connections (that is, ev followings that led to a nearest neighbour minimum)
+5) The unique identifier of the such minima
+6) The energy of the TS. So, if there are 3 minima, the parameter at point (4) is equal to 3, then there is the three identifiers of the minima, then the three transition states. Of course, the first energy of TS refers to the reaction toward the first minimum and so on. The energy of the minima is not given, since it is already present at the corresponding line, point (3)!
+
+Retrieving of the coordinates is possible in the To_be_Analyzed and/or Analyzed folders.
