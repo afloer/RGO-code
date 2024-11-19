@@ -1,4 +1,4 @@
-This is an example of RGO results.
+This is an example of RGO results. The directory must be complemented by the files contained in the zipped file "RGO_example.7z".
 A structure called Initial.xyz was used as an input with cutoffs 0.9 0.9.
 The potential is a neural network Behler Parrinello called using LAMMPS interface of OPTIM.
 Second derivatives are done numerically since analytical ones have not been implemented yet.
