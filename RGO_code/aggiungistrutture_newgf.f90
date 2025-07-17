@@ -1,7 +1,6 @@
 program aggiungi
 implicit none
 
-
 integer(kind=16) :: natom, ncandidates, nold, bandiera, coincidenza, prova, nmodesmax, nmodesmaxl
 character(len=102), dimension(:), allocatable :: path1
 character(len=32) :: lungo, lungo2
@@ -10,12 +9,12 @@ character(len=36) :: lungo3
 integer(kind=16) :: ii, ij
 
 integer(kind=16), dimension(:,:), allocatable :: modo
-real, dimension(:,:), allocatable :: energy
+real*8, dimension(:,:), allocatable :: energy
 character(len=1), dimension(:), allocatable :: analyzed, analyzedbis
 integer(kind=16), dimension(:), allocatable :: structno, nvicini, structnobis, nvicinibis
-real, dimension(:,:), allocatable :: energy2, energy2bis
+real*8, dimension(:,:), allocatable :: energy2, energy2bis
 integer(kind=16), dimension(:,:), allocatable :: vicini, vicinibis
-real, dimension(:,:), allocatable :: viciniTS, viciniTSbis
+real*8, dimension(:,:), allocatable :: viciniTS, viciniTSbis
 
 
 
