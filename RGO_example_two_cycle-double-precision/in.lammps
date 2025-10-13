@@ -1,0 +1,26 @@
+variable        nnpDir  string "/shared2/gconter/RGO_TST/LMP/R13/NNP"
+atom_modify     map array
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic 
+
+read_data       data.lammps
+
+pair_style      hdnnp 6.01 dir ${nnpDir} showew yes showewsum 0 resetew yes maxew 100000 cflength 1. cfenergy 1.
+pair_coeff      * * O Mn Pt
+
+compute         peratom all pe/atom
+
+neighbor        2 bin
+neigh_modify    every 1 delay 0 check yes
+
+variable        dt equal 0.1
+
+timestep        $(dt) 
+dump            0 all custom 1 dp.xyz element xu yu zu fx fy fz
+dump_modify     0 flush yes
+dump_modify     0 sort id element O Mn Pt
+restart         500 MD.restart.1 MD.restart.2
+thermo          1
+run             1
